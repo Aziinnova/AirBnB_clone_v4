@@ -1,120 +1,87 @@
 $(document).ready(function () {
-  let myAmenities = [];
-  let myStates = [];
-  let myCities = [];
-
-  $('.amenities .popover input[type=checkbox]').click(function () {
-    const myListName = [];
-    myAmenities = [];
-
-    $('.amenities .popover  input[type=checkbox]:checked').each(function () {
-      myListName.unshift($(this).attr('data-name'));
-      myAmenities.unshift($(this).attr('data-id'));
-    });
-    if (myListName.length === 0) {
-      $('.amenities h4').html('&nbsp;');
+  let checkedAmenities = {};
+  let checkedStates = {};
+  let checkedCities = {};
+  let checkedLocations = {};
+  $(document).on('change', ".amenities > .popover > li > input[type='checkbox']", function () {
+    if (this.checked) {
+      checkedAmenities[$(this).data('id')] = $(this).data('name');
     } else {
-      $('.amenities h4').text(myListName.join(', '));
+      delete checkedAmenities[$(this).data('id')];
     }
-    console.log(myAmenities);
-  });
-
-  $('.locations .popover h2 input[type=checkbox]').click(function () {
-    const myListName = [];
-    myStates = [];
-
-    $('.locations .popover h2 input[type=checkbox]:checked').each(function () {
-      myListName.unshift($(this).attr('data-name'));
-      myStates.unshift($(this).attr('data-id'));
-    });
-    if (myListName.length === 0) {
-      $('.locations h6.myStates').html('&nbsp;');
+    let lst = Object.values(checkedAmenities);
+    if (lst.length > 0) {
+      $('div.amenities > h4').text(Object.values(checkedAmenities).join(', '));
     } else {
-      $('.locations h6.myStates').text(myListName.join(', '));
+      $('div.amenities > h4').html('&nbsp;');
     }
-    console.log(myStates);
   });
-
-  $('.locations .popover ul ul input[type=checkbox]').click(function () {
-    const myListName = [];
-    myCities = [];
-
-    $('.locations .popover ul ul input[type=checkbox]:checked').each(function () {
-      myListName.unshift($(this).attr('data-name'));
-      myCities.unshift($(this).attr('data-id'));
-    });
-    if (myListName.length === 0) {
-      $('.locations h6.myCities').html('&nbsp;');
+  $(document).on('change', ".locations > .popover > li > input[type='checkbox']", function () {
+    if (this.checked) {
+      checkedStates[$(this).data('id')] = $(this).data('name');
+      checkedLocations[$(this).data('id')] = $(this).data('name');
     } else {
-      $('.locations h6.myCities').text(myListName.join(', '));
+      delete checkedStates[$(this).data('id')];
+      delete checkedLocations[$(this).data('id')];
     }
-    console.log(myCities);
-  });
-
-  $('.filters button').click(function (event) {
-    event.preventDefault();
-
-    $('.places').text('');
-
-    const obj = {};
-    obj.amenities = myAmenities;
-    obj.states = myStates;
-    obj.cities = myCities;
-
-    listPlaces(JSON.stringify(obj));
-  });
-
-  $.ajax({
-    url: 'http://0.0.0.0:5001/api/v1/status/',
-    type: 'GET',
-    dataType: 'json',
-    success: function (json) {
-      $('#api_status').addClass('available');
-    },
-
-    error: function (xhr, status) {
-      console.log('error ' + xhr);
+    let lst = Object.values(checkedLocations);
+    if (lst.length > 0) {
+      $('div.locations > h4').text(lst.join(', '));
+    } else {
+      $('div.locations > h4').html('&nbsp;');
     }
   });
-  listPlaces();
-});
-
-function listPlaces (consult = '{}') {
-  console.log(consult);
+  $(document).on('change', ".locations > .popover > li > ul > li > input[type='checkbox']", function () {
+    if (this.checked) {
+      checkedCities[$(this).data('id')] = $(this).data('name');
+      checkedLocations[$(this).data('id')] = $(this).data('name');
+    } else {
+      delete checkedCities[$(this).data('id')];
+      delete checkedLocations[$(this).data('id')];
+    }
+    let lst = Object.values(checkedLocations);
+    if (lst.length > 0) {
+      $('div.locations > h4').text(lst.join(', '));
+    } else {
+      $('div.locations > h4').html('&nbsp;');
+    }
+  });
+  $.get('http://0.0.0.0:5001/api/v1/status/', function (data, textStatus) {
+    if (textStatus === 'success') {
+      if (data.status === 'OK') {
+        $('#api_status').addClass('available');
+      } else {
+        $('#api_status').removeClass('available');
+      }
+    }
+  });
   $.ajax({
     type: 'POST',
     url: 'http://0.0.0.0:5001/api/v1/places_search',
+    data: '{}',
     dataType: 'json',
-    data: consult,
-    contentType: 'application/json; charset=utf-8',
-    success: function (places) {
-      console.log(places);
-      for (let i = 0; i < places.length; i++) {
-        $('.places').append(`
-<article>
-<div class="title_box">
-<h2> ${places[i].name}</h2>
-<div class="price_by_night"> ${places[i].price_by_night} </div>
-</div>
-<div class="information">
-<div class="max_guest">${places[i].max_guest}
-${places[i].max_guest > 1 ? 'Guests' : 'Guest'} </div>
-<div class="number_rooms">${places[i].number_rooms}
-${places[i].number_rooms > 1 ? 'Bedrooms' : 'Bedroom'}  </div>
-<div class="number_bathrooms">${places[i].number_bathrooms}
-${places[i].number_bathrooms > 1 ? 'Bathrooms' : 'Bathroom'}  </div>
-</div>
-<div class="user">
-</div>
-<div class="description">
-${places[i].description}
-</div>
-</article>
-`);
+    contentType: 'application/json',
+    success: function (data) {
+      for (let i = 0; i < data.length; i++) {
+        let place = data[i];
+        $('.places ').append('<article><h2>' + place.name + '</h2><div class="price_by_night"><p>$' + place.price_by_night + '</p></div><div class="information"><div class="max_guest"><div class="guest_image"></div><p>' + place.max_guest + '</p></div><div class="number_rooms"><div class="bed_image"></div><p>' + place.number_rooms + '</p></div><div class="number_bathrooms"><div class="bath_image"></div><p>' + place.number_bathrooms + '</p></div></div><div class="description"><p>' + place.description + '</p></div></article>');
       }
-    },
-    error: function (xhr, status) {
-      console.log('error ' + status);
     }
   });
-}
+  $('.filters > button').click(function () {
+    $('.places > article').remove();
+    $.ajax({
+      type: 'POST',
+      url: 'http://0.0.0.0:5001/api/v1/places_search',
+      data: JSON.stringify({'amenities': Object.keys(checkedAmenities), 'states': Object.keys(checkedStates), 'cities': Object.keys(checkedCities)}),
+      dataType: 'json',
+      contentType: 'application/json',
+      success: function (data) {
+        for (let i = 0; i < data.length; i++) {
+          let place = data[i];
+          $('.places ').append('<article><h2>' + place.name + '</h2><div class="price_by_night"><p>$' + place.price_by_night + '</p></div><div class="information"><div class="max_guest"><div class="guest_image"></div><p>' + place.max_guest + '</p></div><div class="number_rooms"><div class="bed_image"></div><p>' + place.number_rooms + '</p></div><div class="number_bathrooms"><div class="bath_image"></div><p>' + place.number_bathrooms + '</p></div></div><div class="description"><p>' + place.description + '</p></div></article>');
+        }
+      }
+    });
+  });
+});
